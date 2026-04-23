@@ -74,78 +74,87 @@ from pathlib import Path
 
 
 def parse_arguments():
-    """
-    Define and parse command-line arguments.
+    parser = argparse.ArgumentParser(description="TCP Port Scanner")
 
-    Returns the parsed namespace object.
-    Required: target (positional IP address)
-    Optional: --ports, --timeout, --threads, --output
-    """
-    # TODO: Implement argparse
-    # --ports should accept both ranges (1-1024) and lists (21,22,80)
-    pass
+    parser.add_argument("target", help="Target IP address")
+
+    parser.add_argument("--ports", required=True, help="Ports (e.g. 1-1000 or 22,80,443)")
+
+    parser.add_argument("--timeout", type=float, default=0.5, help="Connection timeout")
+
+    parser.add_argument("--threads", type=int, default=50, help="Number of threads")
+
+    parser.add_argument("--output", type=Path, default="recon_results.json", help="Output JSON file")
+
+    return parser.parse_args()
 
 
 def parse_port_input(port_string: str) -> list[int]:
-    """
-    Parse a port string into a list of integer port numbers.
+    ports = []
 
-    Accepts:
-        "1-1024"    → [1, 2, 3, ..., 1024]
-        "21,22,80"  → [21, 22, 80]
+    if "-" in port_string:
+        start, end = port_string.split("-")
+        ports = list(range(int(start), int(end) + 1))
+    else:
+        ports = [int(p.strip()) for p in port_string.split(",")]
 
-    Args:
-        port_string: Raw string from argparse.
-
-    Returns:
-        Sorted list of port integers.
-
-    Raises:
-        ValueError: If the format is unrecognised or ports are out of range.
-    """
-    # TODO: Implement port range/list parsing
-    pass
+    return sorted(set(ports))
 
 
 def grab_banner(sock: socket.socket, timeout: float = 0.5) -> str:
-    """
-    Attempt to receive a banner string from an open socket.
+    sock.settimeout(timeout)
 
-    Args:
-        sock:    An already-connected socket object.
-        timeout: Seconds to wait for banner data.
-
-    Returns:
-        Decoded banner string, or empty string if no banner received.
-    """
-    # TODO: Implement banner grabbing
-    # Handle: timeout, decode errors, empty response
-    pass
+    try:
+        data = sock.recv(1024)
+        return data.decode(errors="ignore").strip()
+    except:
+        return ""
 
 
 def check_port(target: str, port: int, timeout: float) -> dict | None:
-    """
-    Attempt a TCP connection to target:port.
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(timeout)
 
-    Args:
-        target:  IP address string.
-        port:    Port number integer.
-        timeout: Connection timeout in seconds.
+            result = s.connect_ex((target, port))
+            if result == 0:
+                banner = grab_banner(s, timeout)
+                return {"port": port, "banner": banner}
 
-    Returns:
-        Dict {"port": int, "banner": str} if open, None if closed/filtered.
-    """
-    # TODO: Implement TCP connect attempt
-    # On success: call grab_banner(), return result dict
-    # On failure: return None (do not raise)
-    pass
+    except:
+        return None
+
+    return None
 
 
 def main():
     args = parse_arguments()
-    # TODO: Wire parse_arguments → parse_port_input → ThreadPoolExecutor
-    #       → collect results → write JSON output
-    pass
+
+    ports = parse_port_input(args.ports)
+
+    results = []
+
+    with ThreadPoolExecutor(max_workers=args.threads) as executor:
+        futures = [
+            executor.submit(check_port, args.target, port, args.timeout)
+            for port in ports
+        ]
+
+        for f in as_completed(futures):
+            result = f.result()
+            if result:
+                results.append(result)
+
+    output = {
+        "target": args.target,
+        "scan_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "open_ports": sorted(results, key=lambda x: x["port"])
+    }
+
+    print(json.dumps(output))
+
+    with open(args.output, "w") as f:
+        json.dump(output, f, indent=4)
 
 
 if __name__ == "__main__":
