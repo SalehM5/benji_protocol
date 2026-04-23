@@ -100,69 +100,78 @@ SENSITIVE_PATHS = [
 
 
 def parse_arguments():
-    """
-    Define and parse command-line arguments.
+    parser = argparse.ArgumentParser(description="Web Enumerator")
 
-    Returns the parsed namespace object.
-    Required: url (positional)
-    Optional: --timeout (default 5)
-    """
-    # TODO: Implement argparse
-    pass
+    parser.add_argument("url", help="Target URL")
+    parser.add_argument("--timeout", type=int, default=5)
+
+    return parser.parse_args()
 
 
 def analyse_headers(response: requests.Response) -> dict:
-    """
-    Extract security-relevant information from HTTP response headers.
+    headers = response.headers
 
-    Args:
-        response: A requests.Response object.
+    return {
+        "Server": headers.get("Server", "Not present"),
+        "X-Powered-By": headers.get("X-Powered-By", "Not present"),
+    }
 
-    Returns:
-        Dict of relevant header names to values.
-        Use "Not present" for missing headers.
-    """
-    # TODO: Extract Server, X-Powered-By, and any other revealing headers
-    pass
+from bs4 import Comment
+from bs4 import BeautifulSoup
 
 
 def extract_comments(html: str) -> list[str]:
-    """
-    Extract all HTML comments from a page's source.
+    soup = BeautifulSoup(html, "html.parser")
 
-    Args:
-        html: Raw HTML string.
+    comments = soup.find_all(string=lambda text: isinstance(text, Comment))
 
-    Returns:
-        List of comment strings (stripped of <!-- --> delimiters).
-    """
-    # TODO: Use BeautifulSoup to find Comment objects
-    # from bs4 import Comment
-    # soup.find_all(string=lambda text: isinstance(text, Comment))
-    pass
+    return [c.strip() for c in comments]
 
 
 def check_sensitive_paths(base_url: str, timeout: int) -> dict:
-    """
-    Probe a list of sensitive paths and record HTTP status codes.
+    results = {}
 
-    Args:
-        base_url: The target base URL.
-        timeout:  Request timeout in seconds.
+    for path in SENSITIVE_PATHS:
+        url = urljoin(base_url, path)
 
-    Returns:
-        Dict mapping path string to status code integer (or None if error).
-    """
-    # TODO: Iterate SENSITIVE_PATHS, HEAD or GET request each, record status
-    # Use urljoin to construct full URLs safely
-    pass
+        try:
+            r = requests.get(url, timeout=timeout)
+            results[path] = r.status_code
+        except Exception:
+            results[path] = None
+
+    return results
 
 
 def main():
     args = parse_arguments()
-    # TODO: Wire parse_arguments → analyse_headers → extract_comments
-    #       → check_sensitive_paths → print formatted output
-    pass
+
+    response = requests.get(args.url, timeout=args.timeout)
+
+    headers = analyse_headers(response)
+    comments = extract_comments(response.text)
+    paths = check_sensitive_paths(args.url, args.timeout)
+
+    print("[HEADERS]")
+    print(f"Server: {headers['Server']}")
+    print(f"X-Powered-By: {headers['X-Powered-By']}")
+    print()
+
+    print("[COMMENTS]")
+    print(f"Found {len(comments)} HTML comment(s):")
+    for i, c in enumerate(comments, 1):
+        print(f"{i}. {c}")
+    print()
+
+    print("[SENSITIVE PATHS]")
+    for path, status in paths.items():
+        if status:
+            if status == 200:
+                print(f"{path} → FOUND ({status})")
+            else:
+                print(f"{path} → NOT FOUND ({status})")
+        else:
+            print(f"{path} → NOT FOUND (error)")
 
 
 if __name__ == "__main__":
