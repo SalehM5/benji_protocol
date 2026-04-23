@@ -53,7 +53,7 @@ EXAMPLE USAGE
 BUILD LOG
 ---------
 Use docs/build.md to record your development notes, decisions, and reflections
-as you build this tool. Benji documents everything.
+as you build this tool. Benji documents everything. done
 ================================================================================
 """
 
