@@ -103,8 +103,11 @@ def parse_log(file_path: Path) -> list[dict]:
         raise ValueError("File is empty")
 
     pattern = re.compile(
-        r"^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+).*?(Failed password|Invalid user).*?(?:user\s+)?(?P<user>\w+).*?from\s+(?P<ip>\d+\.\d+\.\d+\.\d+)"
+         r"^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+).*?"
+         r"(?:Failed password for (?:invalid user )?|Invalid user )"
+         r"(?P<user>\w+).*?from\s+(?P<ip>\d+\.\d+\.\d+\.\d+)"
     )
+    
 
     results = []
     seen = set()
@@ -118,7 +121,11 @@ def parse_log(file_path: Path) -> list[dict]:
                 "User_Account": match.group("user"),
             }
 
-            key = (record["Timestamp"], record["IP_Address"], record["User_Account"])
+            key = (
+                record["Timestamp"].strip(),
+                record["IP_Address"].strip(),
+                record["User_Account"].strip(),
+            )
 
             if key not in seen:
                 seen.add(key)
@@ -158,6 +165,8 @@ def main():
 
     except FileNotFoundError:
         print("Error: Log file not found", file=sys.stderr)
+        sys.exit(1)
+        
 
     except ValueError:
         print("Error: File is empty", file=sys.stderr)
