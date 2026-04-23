@@ -53,11 +53,10 @@ EXAMPLE USAGE
 BUILD LOG
 ---------
 Use docs/build.md to record your development notes, decisions, and reflections
-as you build this tool. Benji documents everything. done
+as you build this tool. Benji documents everything.
 ================================================================================
 """
 
-# Your imports go here
 import argparse
 import csv
 import re
@@ -70,10 +69,13 @@ def parse_arguments():
     Define and parse command-line arguments.
     Returns the parsed namespace object.
     """
-    # TODO: Implement argparse
-    # Required: input_file (positional)
-    # Optional: --output (default: suspects.csv)
-    pass
+    parser = argparse.ArgumentParser(description="Parse auth.log for failed login attempts")
+
+    parser.add_argument("input_file", type=Path, help="Path to the log file")
+
+    parser.add_argument("--output", type=Path, default="suspects.csv", help="Output CSV file")
+
+    return parser.parse_args()
 
 
 def parse_log(file_path: Path) -> list[dict]:
@@ -91,9 +93,38 @@ def parse_log(file_path: Path) -> list[dict]:
         FileNotFoundError: If the log file does not exist.
         ValueError: If the file is empty.
     """
-    # TODO: Implement log parsing logic
-    # Hint: compile your regex patterns before the loop for efficiency
-    pass
+
+    if not file_path.exists():
+        raise FileNotFoundError("Log file not found")
+
+    lines = file_path.read_text().splitlines()
+
+    if not lines:
+        raise ValueError("File is empty")
+
+    pattern = re.compile(
+        r"^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+).*?(Failed password|Invalid user).*?(?:user\s+)?(?P<user>\w+).*?from\s+(?P<ip>\d+\.\d+\.\d+\.\d+)"
+    )
+
+    results = []
+    seen = set()
+
+    for line in lines:
+        match = pattern.search(line)
+        if match:
+            record = {
+                "Timestamp": match.group("timestamp"),
+                "IP_Address": match.group("ip"),
+                "User_Account": match.group("user"),
+            }
+
+            key = (record["Timestamp"], record["IP_Address"], record["User_Account"])
+
+            if key not in seen:
+                seen.add(key)
+                results.append(record)
+
+    return results
 
 
 def write_csv(records: list[dict], output_path: Path) -> None:
@@ -104,16 +135,35 @@ def write_csv(records: list[dict], output_path: Path) -> None:
         records:     List of IoC record dicts.
         output_path: Path object for the output CSV file.
     """
-    # TODO: Implement CSV writing
-    # Headers must be exactly: Timestamp, IP_Address, User_Account
-    pass
+
+    with open(output_path, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=["Timestamp", "IP_Address", "User_Account"])
+
+        writer.writeheader()
+        writer.writerows(records)
 
 
 def main():
     args = parse_arguments()
-    # TODO: Wire parse_arguments → parse_log → write_csv
-    # Handle exceptions and print informative messages to stderr
-    pass
+
+    try:
+        records = parse_log(args.input_file)
+
+        if not records:
+            print("No matches found.", file=sys.stderr)
+
+        write_csv(records, args.output)
+
+        print(f"Report written to {args.output}")
+
+    except FileNotFoundError:
+        print("Error: Log file not found", file=sys.stderr)
+
+    except ValueError:
+        print("Error: File is empty", file=sys.stderr)
+
+    except Exception as e:
+        print(f"Unexpected error: {e}", file=sys.stderr)
 
 
 if __name__ == "__main__":
