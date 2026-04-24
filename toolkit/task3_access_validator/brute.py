@@ -64,7 +64,6 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
-import pyftpdlib
 
 try:
     import paramiko
@@ -103,10 +102,10 @@ def load_wordlist(wordlist_path: Path) -> list[str]:
     return words
 
 
-def attempt_ftp(target: str, user: str, password: str) -> bool:
+def attempt_ftp(target: str, user: str, password: str, port: int) -> bool:
     try:
         ftp = ftplib.FTP()
-        ftp.connect(target, 21, timeout=2)
+        ftp.connect(target, port, timeout=2)
         ftp.login(user=user, passwd=password)
         ftp.quit()
         return True
@@ -148,7 +147,8 @@ def main():
         time.sleep(0.1)
 
         if args.service == "ftp":
-            success = attempt_ftp(args.target, args.user, password)
+            port = args.port if args.port else 21
+            success = attempt_ftp(args.target, args.user, password, port)
         else:
             success = attempt_ssh(args.target, args.user, password)
 
@@ -157,6 +157,7 @@ def main():
             return
 
     print(f"[-] EXHAUSTED: No valid credentials found for user {args.user}")
+
 
 if __name__ == "__main__":
     main()
