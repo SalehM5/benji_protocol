@@ -1,7 +1,7 @@
 # AI Transparency Log — The Benji Protocol
 
-**Student Name:**
-**Student ID:**
+**Student Name: Saleh Moosa**
+**Student ID 2403662:**
 
 ---
 
@@ -27,5 +27,10 @@ for the solution. Code you cannot explain during the session will be flagged.
 
 | Week | Task | Prompt Used | AI Output Summary | My Verification / Changes Made |
 |------|------|-------------|-------------------|-------------------------------|
-|      |      |             |                   |                                |
+|   2   | Task 1 | fix this command for my python script : return sorted(set(ports) |  provided return sorted(set(ports)) | Forgot the double brankets  |
+|   2   | Task 2 | are there any spacing problems in this part of the code ...|returned a corrected def_port_import section, no coding changed, just spacing| corrected spacing|
+| 3 | Task 3 | what is paramiko, and how to import it  |  Summarised paramiko | imported paramiko into my script 
+| 4  | Task 3 | what does this error mean ... | told me i have a missing module, a open bracket that has not been closed, and spacing issues| Fixed all the issues|
+|  5  | Task 4 | beautiful soup module missing, and fix this error ... | made me download modules and update using kali terminal| downlaod different libraries |
+
 
