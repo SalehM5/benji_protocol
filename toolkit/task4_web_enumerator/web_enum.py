@@ -74,16 +74,16 @@ This intelligence feeds directly into the Vulnerability Hunt diagnosis phase.
 """
 
 # Your imports go here
-import argparse
+import argparse        #import libraries 
 import sys
 from urllib.parse import urljoin, urlparse
 
 try:
     import requests
-    from bs4 import BeautifulSoup
+    from bs4 import BeautifulSoup          #try module from library beautiful soup
 except ImportError as e:
     print(
-        f"[-] Missing dependency: {e}. Run: pip install requests beautifulsoup4",
+        f"[-] Missing dependency: {e}. Run: pip install requests beautifulsoup4",   #if not existing, install 
         file=sys.stderr,
     )
     sys.exit(1)
@@ -102,7 +102,7 @@ SENSITIVE_PATHS = [
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Web Enumerator")
 
-    parser.add_argument("url", help="Target URL")
+    parser.add_argument("url", help="Target URL")      #user input 
     parser.add_argument("--timeout", type=int, default=5)
 
     return parser.parse_args()
@@ -112,15 +112,15 @@ def analyse_headers(response: requests.Response) -> dict:
     headers = response.headers
 
     return {
-        "Server": headers.get("Server", "Not present"),
+        "Server": headers.get("Server", "Not present"),      #get service headers 
         "X-Powered-By": headers.get("X-Powered-By", "Not present"),
     }
 
-from bs4 import Comment
+from bs4 import Comment       #import specific 
 from bs4 import BeautifulSoup
 
 
-def extract_comments(html: str) -> list[str]:
+def extract_comments(html: str) -> list[str]:      #extract comments 
     soup = BeautifulSoup(html, "html.parser")
 
     comments = soup.find_all(string=lambda text: isinstance(text, Comment))
@@ -154,16 +154,16 @@ def main():
 
     print("[HEADERS]")
     print(f"Server: {headers['Server']}")
-    print(f"X-Powered-By: {headers['X-Powered-By']}")
+    print(f"X-Powered-By: {headers['X-Powered-By']}")          #print headers 
     print()
 
     print("[COMMENTS]")
-    print(f"Found {len(comments)} HTML comment(s):")
+    print(f"Found {len(comments)} HTML comment(s):")      #return comments 
     for i, c in enumerate(comments, 1):
         print(f"{i}. {c}")
     print()
 
-    print("[SENSITIVE PATHS]")
+    print("[SENSITIVE PATHS]")          #print sensitive paths 
     for path, status in paths.items():
         if status:
             if status == 200:
@@ -174,5 +174,5 @@ def main():
             print(f"{path} → NOT FOUND (error)")
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":        #run main 
     main()
