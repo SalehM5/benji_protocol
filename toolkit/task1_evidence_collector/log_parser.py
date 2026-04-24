@@ -57,28 +57,26 @@ as you build this tool. Benji documents everything.
 ================================================================================
 """
 
-import argparse
+import argparse       #import different modules
 import csv
 import re
-import sys
+import sys             #Used for error handling 
 from pathlib import Path
-
 
 def parse_arguments():
     """
     Define and parse command-line arguments.
     Returns the parsed namespace object.
     """
-    parser = argparse.ArgumentParser(description="Parse auth.log for failed login attempts")
+    parser = argparse.ArgumentParser(description="Parse auth.log for failed login attempts")          #ensures correct path, if not, error message
 
-    parser.add_argument("input_file", type=Path, help="Path to the log file")
+    parser.add_argument("input_file", type=Path, help="Path to the log file")                        #user input
 
-    parser.add_argument("--output", type=Path, default="suspects.csv", help="Output CSV file")
+    parser.add_argument("--output", type=Path, default="suspects.csv", help="Output CSV file")      
 
     return parser.parse_args()
 
-
-def parse_log(file_path: Path) -> list[dict]:
+def parse_log(file_path: Path) -> list[dict]:      #Reads log file and extracts failed attempts to log in 
     """
     Read the log file and extract IoC records.
 
@@ -95,7 +93,7 @@ def parse_log(file_path: Path) -> list[dict]:
     """
 
     if not file_path.exists():
-        raise FileNotFoundError("Log file not found")
+        raise FileNotFoundError("Log file not found")       #Ensures file path is existing 
 
     lines = file_path.read_text().splitlines()
 
@@ -104,7 +102,7 @@ def parse_log(file_path: Path) -> list[dict]:
 
     pattern = re.compile(
          r"^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+).*?"
-         r"(?:Failed password for (?:invalid user )?|Invalid user )"
+         r"(?:Failed password for (?:invalid user )?|Invalid user )"       #DD/MM/YY format 
          r"(?P<user>\w+).*?from\s+(?P<ip>\d+\.\d+\.\d+\.\d+)"
     )
     
@@ -113,16 +111,16 @@ def parse_log(file_path: Path) -> list[dict]:
     seen = set()
 
     for line in lines:
-        match = pattern.search(line)
-        if match:
+        match = pattern.search(line)     #check if line matches attack pattern
+        if match:                     #if found match data 
             record = {
-                "Timestamp": match.group("timestamp"),
+                "Timestamp": match.group("timestamp"),     #CHeck timestamp, ip and user account
                 "IP_Address": match.group("ip"),
                 "User_Account": match.group("user"),
             }
 
             key = (
-                record["Timestamp"].strip(),
+                record["Timestamp"].strip(),        #remove extra spaces
                 record["IP_Address"].strip(),
                 record["User_Account"].strip(),
             )
@@ -133,8 +131,7 @@ def parse_log(file_path: Path) -> list[dict]:
 
     return results
 
-
-def write_csv(records: list[dict], output_path: Path) -> None:
+def write_csv(records: list[dict], output_path: Path) -> None:        #write the CSV file
     """
     Write extracted records to a CSV file.
 
@@ -144,11 +141,10 @@ def write_csv(records: list[dict], output_path: Path) -> None:
     """
 
     with open(output_path, "w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=["Timestamp", "IP_Address", "User_Account"])
+        writer = csv.DictWriter(f, fieldnames=["Timestamp", "IP_Address", "User_Account"])   #informatiob found in csv file
 
         writer.writeheader()
         writer.writerows(records)
-
 
 def main():
     args = parse_arguments()
@@ -173,7 +169,6 @@ def main():
 
     except Exception as e:
         print(f"Unexpected error: {e}", file=sys.stderr)
-
 
 if __name__ == "__main__":
     main()

@@ -74,17 +74,17 @@ from pathlib import Path
 
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description="TCP Port Scanner")
+    parser = argparse.ArgumentParser(description="TCP Port Scanner")   #target ip address 
 
-    parser.add_argument("target", help="Target IP address")
+    parser.add_argument("target", help="Target IP address")  #port input
 
-    parser.add_argument("--ports", required=True, help="Ports (e.g. 1-1000 or 22,80,443)")
+    parser.add_argument("--ports", required=True, help="Ports (e.g. 1-1000 or 22,80,443)") 
 
-    parser.add_argument("--timeout", type=float, default=0.5, help="Connection timeout")
+    parser.add_argument("--timeout", type=float, default=0.5, help="Connection timeout")  #timeout for each connection attempt
 
-    parser.add_argument("--threads", type=int, default=50, help="Number of threads")
+    parser.add_argument("--threads", type=int, default=50, help="Number of threads")    #faster scanning
 
-    parser.add_argument("--output", type=Path, default="recon_results.json", help="Output JSON file")
+    parser.add_argument("--output", type=Path, default="recon_results.json", help="Output JSON file")   #output file with resuslts
 
     return parser.parse_args()
 
@@ -92,36 +92,36 @@ def parse_arguments():
 def parse_port_input(port_string: str) -> list[int]:
     ports = []
 
-    if "-" in port_string:
+    if "-" in port_string:       #1-1000 range
         start, end = port_string.split("-")
         ports = list(range(int(start), int(end) + 1))
-    else:
+    else:        #If user gives list of numbers
         ports = [int(p.strip()) for p in port_string.split(",")]
 
-    return sorted(set(ports))
+    return sorted(set(ports))  #remove duplicates and sort
 
 
-def grab_banner(sock: socket.socket, timeout: float = 0.5) -> str:
+def grab_banner(sock: socket.socket, timeout: float = 0.5) -> str:   #read service banner 
     sock.settimeout(timeout)
 
-    try:
+    try:                      #receive data from service banner 
         data = sock.recv(1024)
         return data.decode(errors="ignore").strip()
-    except:
+    except:                          #if nothing return empty
         return ""
 
 
-def check_port(target: str, port: int, timeout: float) -> dict | None:
+def check_port(target: str, port: int, timeout: float) -> dict | None:   #search open ports 
     try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.settimeout(timeout)
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:   #create tcp socket
+            s.settimeout(timeout)       #set timeout for connection attempt 
 
-            result = s.connect_ex((target, port))
-            if result == 0:
-                banner = grab_banner(s, timeout)
-                return {"port": port, "banner": banner}
+            result = s.connect_ex((target, port))      #connect to target port 
+            if result == 0:          #if port open
+                banner = grab_banner(s, timeout)      #get service banner 
+                return {"port": port, "banner": banner}#return results 
 
-    except:
+    except:              #else ignore and skip 
         return None
 
     return None
@@ -130,9 +130,9 @@ def check_port(target: str, port: int, timeout: float) -> dict | None:
 def main():
     args = parse_arguments()
 
-    ports = parse_port_input(args.ports)
+    ports = parse_port_input(args.ports)     #get user arguments 
 
-    results = []
+    results = []      #get scan results
 
     with ThreadPoolExecutor(max_workers=args.threads) as executor:
         futures = [
@@ -140,21 +140,21 @@ def main():
             for port in ports
         ]
 
-        for f in as_completed(futures):
+        for f in as_completed(futures):       #get scan results 
             result = f.result()
             if result:
                 results.append(result)
 
-    output = {
+    output = {                             #build final JSON output 
         "target": args.target,
         "scan_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "open_ports": sorted(results, key=lambda x: x["port"])
     }
 
-    print(json.dumps(output))
+    print(json.dumps(output))           #print to terminal 
 
     with open(args.output, "w") as f:
-        json.dump(output, f, indent=4)
+        json.dump(output, f, indent=4)         #save 
 
 
 if __name__ == "__main__":
