@@ -1,1 +1,5 @@
-{"target": "", "scan_time": "", "open_ports": []}
+{
+    "target": "172.16.19.101",
+    "scan_time": "2026-04-24 10:18:06",
+    "open_ports": []
+}
