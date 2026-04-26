@@ -113,24 +113,27 @@ def attempt_ftp(target: str, user: str, password: str, port: int) -> bool:     #
         return False
 
 
-def attempt_ssh(target: str, user: str, password: str) -> bool:       #ssh login 
+def attempt_ssh(target: str, user: str, password: str) -> bool:
     try:
         client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())    #auto accept unknown host keys
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         client.connect(
-            hostname=target,          #attempt ssh login 
+            hostname=target,
             username=user,
             password=password,
             timeout=5,
-            banner_timeout=5,
-            auth_timeout=5,
-            allow_agent=False,         #if llogin fails return false 
+            banner_timeout=10,
+            auth_timeout=10,
+            allow_agent=False,
             look_for_keys=False,
         )
 
         client.close()
         return True
+
+    except paramiko.ssh_exception.SSHException:
+        return False
 
     except Exception:
         return False
