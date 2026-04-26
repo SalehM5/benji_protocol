@@ -142,11 +142,13 @@ def attempt_ssh(target: str, user: str, password: str) -> bool:
 def main():
     args = parse_arguments()    #get user argument 
 
+    
     try:
-        passwords = load_wordlist(args.wordlist)      #load password list
-    except Exception:
+        passwords = load_wordlist(args.wordlist)
+        print(f"[DEBUG] Loaded {len(passwords)} passwords")
+    except Exception as e:
+        print(f"[ERROR] Failed to load wordlist: {e}")
         sys.exit(1)
-
     for password in passwords:
 
         print(f"Trying password: {password}")
