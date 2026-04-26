@@ -122,7 +122,9 @@ def attempt_ssh(target: str, user: str, password: str) -> bool:       #ssh login
             hostname=target,          #attempt ssh login 
             username=user,
             password=password,
-            timeout=2,
+            timeout=5,
+            banner_timeout=5,
+            auth_timeout=5,
             allow_agent=False,         #if llogin fails return false 
             look_for_keys=False,
         )
