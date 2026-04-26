@@ -149,6 +149,9 @@ def main():
 
     for password in passwords:
 
+        print(f"Trying password: {password}")
+        sys.stdout.flush()
+
         time.sleep(0.1)
 
         if args.service == "ftp":
